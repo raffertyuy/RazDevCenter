@@ -1,0 +1,29 @@
+$schema: "1.0"
+name: "devbox-customization"
+tasks:
+  - name: choco
+    parameters:
+      package: python
+  - name: powershell
+    parameters:
+      command: |
+        # Refresh environment variables
+        refreshenv
+        
+        # Install python dependencies
+        python.exe -m pip install --upgrade pip;
+        pip install jupyter
+        pip install load-dotenv
+        pip install python-dotenv
+        pip install openai
+  - name: choco
+    parameters:
+      package: vscode
+  - name: git-clone
+    description: Clone this repository into C:\GitRepos
+    parameters:
+      repositoryUrl: https://github.com/raffertyuy/RazGPT.git
+      directory: C:\GitRepos
+  - name: choco
+    parameters:
+      package: microsoft-windows-terminal
