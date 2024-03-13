@@ -4,7 +4,7 @@ tasks:
   - name: choco
     parameters:
       package: python
-  - name: pip-installs
+  - name: powershell
     parameters:
       command: |
         # Refresh environment variables
