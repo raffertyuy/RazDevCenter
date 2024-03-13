@@ -4,7 +4,7 @@ tasks:
   - name: choco
     parameters:
       package: python
-  - name: powershell
+  - name: pip-installs
     parameters:
       command: |
         # Refresh environment variables
@@ -16,14 +16,20 @@ tasks:
         pip install load-dotenv
         pip install python-dotenv
         pip install openai
-  - name: choco
+  - name: winget
     parameters:
-      package: vscode
+      package: Microsoft.VisualStudioCode
+      runAsUser: true
   - name: git-clone
     description: Clone this repository into C:\GitRepos
     parameters:
       repositoryUrl: https://github.com/raffertyuy/RazGPT.git
       directory: C:\GitRepos
-  - name: choco
+  - name: winget
     parameters:
-      package: microsoft-windows-terminal
+      package: Microsoft.WindowsTerminal
+      runAsUser: true
+  - name: winget
+    parameters:
+      package: Postman.Postman
+      runAsUser: true
