@@ -1,5 +1,9 @@
 name: Regenerate all updated Bicep files to ARM Templates
 
+# Add permissions for the GITHUB_TOKEN
+permissions:
+  contents: write
+
 on:
   push:
     paths:
@@ -12,8 +16,6 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
-      with:
-        fetch-depth: 2
     
     - name: Install Bicep CLI
       run: |
@@ -24,50 +26,56 @@ jobs:
       run: |
         echo "Starting Bicep file processing..."
         
-        # Debug: Show all files in workspace
-        echo "All files in workspace:"
-        git ls-files
-        
-        # Handle both first commit and subsequent commits
+        # Get changed Bicep/parameter files, handling both first commit and subsequent commits
         if git rev-parse HEAD^ >/dev/null 2>&1; then
-          echo "Not first commit, checking diff with previous commit..."
-          changed_files=$(git diff --name-only HEAD^ HEAD)
-          echo "All changed files:"
-          echo "$changed_files"
-          changed_files=$(echo "$changed_files" | grep -E '\.(bicep|parameters\.json)$' || true)
+          changed_files=$(git diff --name-only HEAD^ HEAD | grep -E '\.(bicep|parameters\.json)$' || true)
         else
-          echo "First commit or no previous history..."
           changed_files=$(git ls-files | grep -E '\.(bicep|parameters\.json)$' || true)
+        fi
+        
+        if [ -z "$changed_files" ]; then
+          echo "No Bicep or parameter files changed"
+          exit 0
         fi
         
         echo "Found changed Bicep/parameter files:"
         echo "$changed_files"
         
+        # Track processed directories to avoid duplicate builds
+        declare -A processed_dirs
+        
         # Process each changed file
         while IFS= read -r changed_file || [ -n "$changed_file" ]; do
-          if [ -z "$changed_file" ]; then
-            continue
+          [ -z "$changed_file" ] && continue
+          
+          # Validate module references if it's a Bicep file
+          if [[ "$changed_file" == *.bicep ]]; then
+            dir=$(dirname "$changed_file")
+            
+            # Extract and validate module paths
+            while IFS= read -r module_path || [ -n "$module_path" ]; do
+              if [ -n "$module_path" ]; then
+                full_module_path="$dir/$module_path"
+                if [ ! -f "$full_module_path" ]; then
+                  echo "Error: Module file not found: $full_module_path"
+                  exit 1
+                fi
+              fi
+            done <<< "$(grep -oP "(?<=module \w+ ['\\\"']).*(?=['\\\"])" "$changed_file" || true)"
           fi
           
-          echo "Processing changes for: $changed_file"
-          
-          # Get the directory containing the changed file
+          # Find and build main.bicep
           current_dir=$(dirname "$changed_file")
-          echo "Starting search in directory: $current_dir"
-          
-          # Search up the directory tree until we find main.bicep or reach root
           while [ "$current_dir" != "." ] && [ "$current_dir" != "/" ]; do
-            echo "Checking directory: $current_dir"
-            if [ -f "$current_dir/main.bicep" ]; then
-              echo "Found main.bicep in $current_dir"
-              echo "Running: az bicep build --file $current_dir/main.bicep --outfile $current_dir/azuredeploy.json"
-              az bicep build --file "$current_dir/main.bicep" --outfile "$current_dir/azuredeploy.json"
-              if [ $? -eq 0 ]; then
-                echo "Successfully generated azuredeploy.json"
+            if [ -f "$current_dir/main.bicep" ] && [ -z "${processed_dirs[$current_dir]}" ]; then
+              echo "Building main.bicep in $current_dir"
+              if az bicep build --file "$current_dir/main.bicep" --outfile "$current_dir/azuredeploy.json"; then
+                processed_dirs[$current_dir]=1
+                break
               else
-                echo "Failed to generate azuredeploy.json"
+                echo "Failed to generate azuredeploy.json in $current_dir"
+                exit 1
               fi
-              break
             fi
             current_dir=$(dirname "$current_dir")
           done
