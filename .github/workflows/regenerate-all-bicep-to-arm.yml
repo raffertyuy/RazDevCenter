@@ -1,0 +1,63 @@
+name: Regenerate all ARM Templates
+
+permissions:
+  contents: write
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-commit:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Bicep CLI
+      run: |
+        az bicep install
+    
+    - name: Find and Build All Bicep Files
+      shell: bash
+      run: |
+        echo "Starting Bicep file processing..."
+        
+        # Find all main.bicep files in the repository
+        main_bicep_files=$(find . -name "main.bicep")
+        
+        if [ -z "$main_bicep_files" ]; then
+          echo "No main.bicep files found"
+          exit 0
+        fi
+        
+        echo "Found main.bicep files:"
+        echo "$main_bicep_files"
+        
+        # Process each main.bicep file
+        while IFS= read -r bicep_file || [ -n "$bicep_file" ]; do
+          [ -z "$bicep_file" ] && continue
+          
+          dir=$(dirname "$bicep_file")
+          echo "Building main.bicep in $dir"
+          
+          if az bicep build --file "$bicep_file" --outfile "$dir/azuredeploy.json"; then
+            echo "Successfully generated azuredeploy.json in $dir"
+          else
+            echo "Failed to generate azuredeploy.json in $dir"
+            exit 1
+          fi
+        done <<< "$main_bicep_files"
+    
+    - name: Commit and Push Changes
+      run: |
+        echo "Checking for changes to commit..."
+        git config --global user.name 'GitHub Actions'
+        git config --global user.email 'actions@github.com'
+        git add .
+        if git diff --cached --quiet; then
+          echo "No changes to commit"
+        else
+          echo "Committing and pushing changes..."
+          git commit -m "Auto-generate ARM templates from all Bicep files"
+          git push
+        fi

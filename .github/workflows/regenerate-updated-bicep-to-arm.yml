@@ -1,4 +1,4 @@
-name: Regenerate all updated Bicep files to ARM Templates
+name: Regenerate ARM Templates of updated Biceps
 
 # Add permissions for the GITHUB_TOKEN
 permissions:
