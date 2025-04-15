@@ -1,0 +1,89 @@
+name: Regenerate ARM Templates from Bicep
+
+on:
+  push:
+    paths:
+      - '**/*.bicep'
+      - '**/*.parameters.json'
+  workflow_dispatch:
+
+jobs:
+  build-and-commit:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 2
+    
+    - name: Install Bicep CLI
+      run: |
+        az bicep install
+    
+    - name: Find and Build Bicep Files to ARM
+      shell: bash
+      run: |
+        echo "Starting Bicep file processing..."
+        
+        # Debug: Show all files in workspace
+        echo "All files in workspace:"
+        git ls-files
+        
+        # Handle both first commit and subsequent commits
+        if git rev-parse HEAD^ >/dev/null 2>&1; then
+          echo "Not first commit, checking diff with previous commit..."
+          changed_files=$(git diff --name-only HEAD^ HEAD)
+          echo "All changed files:"
+          echo "$changed_files"
+          changed_files=$(echo "$changed_files" | grep -E '\.(bicep|parameters\.json)$' || true)
+        else
+          echo "First commit or no previous history..."
+          changed_files=$(git ls-files | grep -E '\.(bicep|parameters\.json)$' || true)
+        fi
+        
+        echo "Found changed Bicep/parameter files:"
+        echo "$changed_files"
+        
+        # Process each changed file
+        while IFS= read -r changed_file || [ -n "$changed_file" ]; do
+          if [ -z "$changed_file" ]; then
+            continue
+          fi
+          
+          echo "Processing changes for: $changed_file"
+          
+          # Get the directory containing the changed file
+          current_dir=$(dirname "$changed_file")
+          echo "Starting search in directory: $current_dir"
+          
+          # Search up the directory tree until we find main.bicep or reach root
+          while [ "$current_dir" != "." ] && [ "$current_dir" != "/" ]; do
+            echo "Checking directory: $current_dir"
+            if [ -f "$current_dir/main.bicep" ]; then
+              echo "Found main.bicep in $current_dir"
+              echo "Running: az bicep build --file $current_dir/main.bicep --outfile $current_dir/azuredeploy.json"
+              az bicep build --file "$current_dir/main.bicep" --outfile "$current_dir/azuredeploy.json"
+              if [ $? -eq 0 ]; then
+                echo "Successfully generated azuredeploy.json"
+              else
+                echo "Failed to generate azuredeploy.json"
+              fi
+              break
+            fi
+            current_dir=$(dirname "$current_dir")
+          done
+        done <<< "$changed_files"
+    
+    - name: Commit and Push Changes
+      run: |
+        echo "Checking for changes to commit..."
+        git config --global user.name 'GitHub Actions'
+        git config --global user.email 'actions@github.com'
+        git add .
+        if git diff --cached --quiet; then
+          echo "No changes to commit"
+        else
+          echo "Committing and pushing changes..."
+          git commit -m "Auto-generate ARM templates from Bicep files"
+          git push
+        fi
