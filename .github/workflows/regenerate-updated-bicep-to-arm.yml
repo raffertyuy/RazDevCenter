@@ -1,11 +1,10 @@
-name: Regenerate ARM Templates from Bicep
+name: Regenerate all updated Bicep files to ARM Templates
 
 on:
   push:
     paths:
       - '**/*.bicep'
       - '**/*.parameters.json'
-  workflow_dispatch:
 
 jobs:
   build-and-commit:
