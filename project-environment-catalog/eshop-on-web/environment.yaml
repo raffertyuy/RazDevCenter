@@ -11,11 +11,8 @@ parameters:
     description: 'Name of the environment that can be used as part of naming resource convention'
     type: string
     required: true
-    minLength: 1
-    maxLength: 64
   - id: location
     name: location
     description: 'Primary location for all resources'
     type: string
     required: true
-    minLength: 1
