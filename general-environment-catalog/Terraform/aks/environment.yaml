@@ -1,4 +1,4 @@
-name: Azure Kubernetes Services
+name: aks
 summary: Creates an AKS using Terraform
 description: Deploys an environment using Terraform containing an AKS cluster
 # runner: Terraform

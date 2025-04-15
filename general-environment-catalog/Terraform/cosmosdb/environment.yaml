@@ -1,4 +1,4 @@
-name: Azure Cosmos DB
+name: cosmos-db
 summary: Creates a CosmosDB using Terraform
 description: Deploys an environment using Terraform containing a CosmosDB
 runner: "dragonstoneacr.azurecr.io/ade:cg2"

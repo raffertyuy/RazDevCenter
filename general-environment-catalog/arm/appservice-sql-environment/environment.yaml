@@ -1,6 +1,6 @@
-name: Azure App Service and SQL Database Environment
-summary: Deploys Tour of Heroes on ARM
-description: Deploys an Azure Web App without a data store
+name: app-service-and-sql-db
+summary: Create an Azure App Service and SQL DB using Bicep
+description: Deploys an Azure Web App and SQL Database
 runner: ARM
 templatePath: azuredeploy.json
 
