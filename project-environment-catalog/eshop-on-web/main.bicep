@@ -1,25 +1,15 @@
-targetScope = 'subscription'
+@description('Name of the app')
+param name string = ''
 
-@minLength(1)
-@maxLength(64)
-@description('Name of the environment that can be used as part of naming resource convention')
-param environmentName string
+@description('Location to deploy the environment resources')
+param location string = resourceGroup().location
 
-@minLength(1)
-@description('Primary location for all resources')
-param location string
+var resourceName = !empty(name) ? replace(name, ' ', '-') : 'a${uniqueString(resourceGroup().id)}'
 
-var tags = {
-  'azd-env-name': environmentName
-}
+@description('Tags to apply to environment resources')
+param tags object = {}
 
-resource rg 'Microsoft.Resources/resourceGroups@2022-09-01' = {
-  name: 'rg-${environmentName}'
-  location: location
-  tags: tags
-}
-
-var uniqueName = uniqueString(rg.id, subscription().id)
+var uniqueName = uniqueString(resourceGroup().id, subscription().id)
 var sqlAdministratorUser = 'eshopOnWebAdmin'
 var sqlAdministratorLoginPassword = '${uniqueName}${uniqueName}5!'
 var keyVaultName = 'vault-${uniqueName}'
@@ -30,7 +20,6 @@ var databaseNames = [
 
 module sql 'modules/sql.bicep' = {
   name: 'sql'
-  scope: rg
   params: {
     sqlAdministratorLoginUser: sqlAdministratorUser
     sqlAdministratorLoginPassword: sqlAdministratorLoginPassword
@@ -41,7 +30,6 @@ module sql 'modules/sql.bicep' = {
 
 module appInsights 'modules/applicationInsights.bicep' ={
   name: 'appInsights'
-  scope: rg
   params: {
     tags: tags
   }  
@@ -49,7 +37,6 @@ module appInsights 'modules/applicationInsights.bicep' ={
 
 module keyVault 'modules/keyVault.bicep' = {
   name: 'keyVault'
-  scope: rg
   params: {
     keyVaultName: keyVaultName
     sqlAdministratorLoginUser: sqlAdministratorUser
@@ -62,7 +49,6 @@ module keyVault 'modules/keyVault.bicep' = {
 
 module appService 'modules/appService.bicep' = {
   name: 'appService'
-  scope: rg
   params: {
     tags: tags
     databaseNames: databaseNames
@@ -73,7 +59,6 @@ module appService 'modules/appService.bicep' = {
 
 module keyVaultAssignment 'modules/keyVaultAssignment.bicep' = {
   name: 'keyVaultAssignment'
-  scope: rg
   params: {
     keyVaultName: keyVaultName
     appServicePrincipalId: appService.outputs.principalId
