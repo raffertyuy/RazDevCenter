@@ -1,0 +1,21 @@
+name: eshop-on-web
+version: 1.0.0
+summary: eShop Azure Environment
+description: Deploys all the Azure resources required to deploy the eShop project
+runner: ARM
+templatePath: azuredeploy.json
+
+parameters:
+  - id: environmentName
+    name: environmentName
+    description: 'Name of the environment that can be used as part of naming resource convention'
+    type: string
+    required: true
+    minLength: 1
+    maxLength: 64
+  - id: location
+    name: location
+    description: 'Primary location for all resources'
+    type: string
+    required: true
+    minLength: 1

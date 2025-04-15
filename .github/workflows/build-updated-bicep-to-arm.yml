@@ -1,4 +1,4 @@
-name: Regenerate ARM Templates of updated Biceps
+name: Build updated Bicep to ARM
 
 # Add permissions for the GITHUB_TOKEN
 permissions:
@@ -26,7 +26,7 @@ jobs:
       run: |
         echo "Starting Bicep file processing..."
         
-        # Get changed Bicep/parameter files, handling both first commit and subsequent commits
+        # Get changed files, handling both first commit and subsequent commits
         if git rev-parse HEAD^ >/dev/null 2>&1; then
           changed_files=$(git diff --name-only HEAD^ HEAD | grep -E '\.(bicep|parameters\.json)$' || true)
         else
@@ -38,7 +38,7 @@ jobs:
           exit 0
         fi
         
-        echo "Found changed Bicep/parameter files:"
+        echo "Found changed files:"
         echo "$changed_files"
         
         # Track processed directories to avoid duplicate builds

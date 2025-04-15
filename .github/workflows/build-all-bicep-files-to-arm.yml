@@ -1,4 +1,4 @@
-name: Regenerate all ARM Templates
+name: Build ALL Bicep files to ARM
 
 permissions:
   contents: write
