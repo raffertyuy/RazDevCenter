@@ -1,35 +1,39 @@
 {
-  "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "metadata": {
     "_generator": {
       "name": "bicep",
       "version": "0.34.44.8038",
-      "templateHash": "2151801833969261472"
+      "templateHash": "6119626916440110141"
     }
   },
   "parameters": {
-    "environmentName": {
+    "name": {
       "type": "string",
-      "minLength": 1,
-      "maxLength": 64,
+      "defaultValue": "",
       "metadata": {
-        "description": "Name of the environment that can be used as part of naming resource convention"
+        "description": "Name of the app"
       }
     },
     "location": {
       "type": "string",
-      "minLength": 1,
+      "defaultValue": "[resourceGroup().location]",
       "metadata": {
-        "description": "Primary location for all resources"
+        "description": "Location to deploy the environment resources"
+      }
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": {},
+      "metadata": {
+        "description": "Tags to apply to environment resources"
       }
     }
   },
   "variables": {
-    "tags": {
-      "azd-env-name": "[parameters('environmentName')]"
-    },
-    "uniqueName": "[uniqueString(subscriptionResourceId('Microsoft.Resources/resourceGroups', format('rg-{0}', parameters('environmentName'))), subscription().id)]",
+    "resourceName": "[if(not(empty(parameters('name'))), replace(parameters('name'), ' ', '-'), format('a{0}', uniqueString(resourceGroup().id)))]",
+    "uniqueName": "[uniqueString(resourceGroup().id, subscription().id)]",
     "sqlAdministratorUser": "eshopOnWebAdmin",
     "sqlAdministratorLoginPassword": "[format('{0}{1}5!', variables('uniqueName'), variables('uniqueName'))]",
     "keyVaultName": "[format('vault-{0}', variables('uniqueName'))]",
@@ -40,17 +44,9 @@
   },
   "resources": [
     {
-      "type": "Microsoft.Resources/resourceGroups",
-      "apiVersion": "2022-09-01",
-      "name": "[format('rg-{0}', parameters('environmentName'))]",
-      "location": "[parameters('location')]",
-      "tags": "[variables('tags')]"
-    },
-    {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2022-09-01",
       "name": "sql",
-      "resourceGroup": "[format('rg-{0}', parameters('environmentName'))]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -64,7 +60,7 @@
             "value": "[variables('sqlAdministratorLoginPassword')]"
           },
           "tags": {
-            "value": "[variables('tags')]"
+            "value": "[parameters('tags')]"
           },
           "databaseNames": {
             "value": "[variables('databaseNames')]"
@@ -163,16 +159,12 @@
             }
           }
         }
-      },
-      "dependsOn": [
-        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', format('rg-{0}', parameters('environmentName')))]"
-      ]
+      }
     },
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2022-09-01",
       "name": "appInsights",
-      "resourceGroup": "[format('rg-{0}', parameters('environmentName'))]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -180,7 +172,7 @@
         "mode": "Incremental",
         "parameters": {
           "tags": {
-            "value": "[variables('tags')]"
+            "value": "[parameters('tags')]"
           }
         },
         "template": {
@@ -240,16 +232,12 @@
             }
           }
         }
-      },
-      "dependsOn": [
-        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', format('rg-{0}', parameters('environmentName')))]"
-      ]
+      }
     },
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2022-09-01",
       "name": "keyVault",
-      "resourceGroup": "[format('rg-{0}', parameters('environmentName'))]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -269,10 +257,10 @@
             "value": "[variables('databaseNames')]"
           },
           "sqlServerFullyQualifiedDomainName": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('environmentName'))), 'Microsoft.Resources/deployments', 'sql'), '2022-09-01').outputs.sqlServerFullyQualifiedDomainName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'sql'), '2022-09-01').outputs.sqlServerFullyQualifiedDomainName.value]"
           },
           "tags": {
-            "value": "[variables('tags')]"
+            "value": "[parameters('tags')]"
           }
         },
         "template": {
@@ -354,15 +342,13 @@
         }
       },
       "dependsOn": [
-        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', format('rg-{0}', parameters('environmentName')))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('environmentName'))), 'Microsoft.Resources/deployments', 'sql')]"
+        "[resourceId('Microsoft.Resources/deployments', 'sql')]"
       ]
     },
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2022-09-01",
       "name": "appService",
-      "resourceGroup": "[format('rg-{0}', parameters('environmentName'))]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -370,16 +356,16 @@
         "mode": "Incremental",
         "parameters": {
           "tags": {
-            "value": "[variables('tags')]"
+            "value": "[parameters('tags')]"
           },
           "databaseNames": {
             "value": "[variables('databaseNames')]"
           },
           "keyVaultUri": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('environmentName'))), 'Microsoft.Resources/deployments', 'keyVault'), '2022-09-01').outputs.endpoint.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'keyVault'), '2022-09-01').outputs.endpoint.value]"
           },
           "applicationInsightsConnectionString": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('environmentName'))), 'Microsoft.Resources/deployments', 'appInsights'), '2022-09-01').outputs.connectionString.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'appInsights'), '2022-09-01').outputs.connectionString.value]"
           }
         },
         "template": {
@@ -492,16 +478,14 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('environmentName'))), 'Microsoft.Resources/deployments', 'appInsights')]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('environmentName'))), 'Microsoft.Resources/deployments', 'keyVault')]",
-        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', format('rg-{0}', parameters('environmentName')))]"
+        "[resourceId('Microsoft.Resources/deployments', 'appInsights')]",
+        "[resourceId('Microsoft.Resources/deployments', 'keyVault')]"
       ]
     },
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2022-09-01",
       "name": "keyVaultAssignment",
-      "resourceGroup": "[format('rg-{0}', parameters('environmentName'))]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -512,7 +496,7 @@
             "value": "[variables('keyVaultName')]"
           },
           "appServicePrincipalId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('environmentName'))), 'Microsoft.Resources/deployments', 'appService'), '2022-09-01').outputs.principalId.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'appService'), '2022-09-01').outputs.principalId.value]"
           }
         },
         "template": {
@@ -548,19 +532,18 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('environmentName'))), 'Microsoft.Resources/deployments', 'appService')]",
-        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', format('rg-{0}', parameters('environmentName')))]"
+        "[resourceId('Microsoft.Resources/deployments', 'appService')]"
       ]
     }
   ],
   "outputs": {
     "AZURE_APP_URL": {
       "type": "string",
-      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('environmentName'))), 'Microsoft.Resources/deployments', 'appService'), '2022-09-01').outputs.webAppUrl.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'appService'), '2022-09-01').outputs.webAppUrl.value]"
     },
     "AZURE_SQL_FQDN": {
       "type": "string",
-      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('environmentName'))), 'Microsoft.Resources/deployments', 'sql'), '2022-09-01').outputs.sqlServerFullyQualifiedDomainName.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'sql'), '2022-09-01').outputs.sqlServerFullyQualifiedDomainName.value]"
     },
     "SQL_ADMIN_LOGIN": {
       "type": "string",
