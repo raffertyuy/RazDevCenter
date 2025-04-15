@@ -1,0 +1,14 @@
+name: Azure Cosmos DB
+summary: Creates a CosmosDB using Terraform
+description: Deploys an environment using Terraform containing a CosmosDB
+runner: "dragonstoneacr.azurecr.io/ade:cg2"
+templatePath: main.tf
+parameters:
+  - id: "resource_name"
+    name: "Resource Name"
+    required: true
+    type: "string"
+  - id: "location"
+    name: "Location"
+    required: true
+    type: "string"

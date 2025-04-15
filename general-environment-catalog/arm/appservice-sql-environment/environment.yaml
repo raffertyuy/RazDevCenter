@@ -1,0 +1,12 @@
+name: Azure App Service and SQL Database Environment
+summary: Deploys Tour of Heroes on ARM
+description: Deploys an Azure Web App without a data store
+runner: ARM
+templatePath: azuredeploy.json
+
+parameters:
+  - id: name
+    name: name
+    description: 'Name of the Web App'
+    type: string
+    required: true

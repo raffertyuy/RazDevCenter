@@ -20,16 +20,22 @@ tasks:
     parameters:
       package: Microsoft.VisualStudioCode
       runAsUser: true
-  - name: git-clone
-    description: Clone this repository into C:\GitRepos
+  - name: install-vs-extension
     parameters:
-      repositoryUrl: https://github.com/raffertyuy/RazGPT.git
-      directory: C:\GitRepos
+      marketplaceItemName: GitHub.copilot
+  - name: install-vs-extension
+    parameters:
+      marketplaceItemName: GitHub.copilot-chat
   - name: winget
     parameters:
       package: Microsoft.WindowsTerminal
       runAsUser: true
   - name: winget
     parameters:
-      package: Postman.Postman
+      package: Bruno.Bruno
       runAsUser: true
+  - name: git-clone
+    description: Clone this repository into C:\GitRepos
+    parameters:
+      repositoryUrl: https://github.com/raffertyuy/RazGPT.git
+      directory: C:\GitRepos
